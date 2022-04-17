@@ -58,7 +58,7 @@ Apify.main(async () => {
 
             await page.waitForTimeout(1000);
 
-            await page._client.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: './downloads' });
+            await page._client.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: './Downloads' });
 
             await frame.waitForSelector('#screener_table_wrapper > div.dt-buttons > a.dt-button.buttons-csv.buttons-html5');
             await frame.click('#screener_table_wrapper > div.dt-buttons > a.dt-button.buttons-csv.buttons-html5');

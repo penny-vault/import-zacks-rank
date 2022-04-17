@@ -7,4 +7,4 @@ Xvfb $DISPLAY -ac -screen 0 $XVFB_WHD -nolisten tcp &
 echo "Executing main command"
 exec "$@
 
-./import-zacks-rank apify_storage/datasets/ratings
+./import-zacks-rank Downloads/*.csv
