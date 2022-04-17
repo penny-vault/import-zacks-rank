@@ -19,7 +19,10 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"regexp"
+	"strings"
 
+	"github.com/penny-vault/import-zacks-rank/backblaze"
 	"github.com/penny-vault/import-zacks-rank/zacksimport"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -39,29 +42,41 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
-		ratings := zacksimport.LoadRatings(args[0], viper.GetInt("limit"))
+		// parse date from filename :(
+		// if that doesn't work use the current date
+		regex := regexp.MustCompile(`zacks_custom_screen_(\d{4}-\d{2}-\d{2})`)
+		match := regex.FindAllStringSubmatch(args[0], -1)
+		var dateStr string
+		if len(match) > 0 {
+			dateStr = match[0][1]
+		} else {
+			log.Error().Str("FileName", args[0]).Msg("cannot extract date from filename, expecting zacks_custom_screen_YYYY-MM-DD")
+			return
+		}
 
-		fmt.Printf("%+v\n", ratings[0])
+		ratings := zacksimport.LoadRatings(args[0], dateStr, viper.GetInt("limit"))
+		zacksimport.EnrichWithFigi(ratings)
 
-		/*
-			zacksimport.EnrichWithFigi(ratings)
-			zacksimport.SaveToDB(ratings)
+		// Save data as parquet to a temporary directory
+		tmpdir, err := os.MkdirTemp(os.TempDir(), "import-zacks")
+		if err != nil {
+			log.Error().Str("OriginalError", err.Error()).Msg("could not create tempdir")
+		}
+		dateStr = strings.ReplaceAll(dateStr, "-", "")
+		parquetFn := fmt.Sprintf("%s/zacks-%s.parquet", tmpdir, dateStr)
+		log.Info().Str("FileName", parquetFn).Msg("writing zacks ratings data to parquet")
+		zacksimport.SaveToParquet(ratings, parquetFn)
 
-			// Save data as parquet to a temporary directory
-			tmpdir, err := os.MkdirTemp(os.TempDir(), "import-zacks")
-			if err != nil {
-				log.Error().Str("OriginalError", err.Error()).Msg("could not create tempdir")
-			}
+		// Save to database
+		zacksimport.SaveToDB(ratings)
 
-			parquetFn := fmt.Sprintf("%s/zacks-%s.parquet", tmpdir, ratings[0].Date.Format("20060102"))
-			log.Info().Str("FileName", parquetFn).Msg("writing zacks ratings data to parquet")
-			zacksimport.SaveToParquet(ratings, parquetFn)
-
-			// Upload to backblaze
-			backblaze.UploadToBackBlaze(parquetFn, viper.GetString("backblaze_bucket"), ratings[0].Date.Format("2006"))
-		*/
+		// Upload to backblaze
+		year := string(dateStr[:4])
+		log.Info().Str("Year", year).Str("Bucket", viper.GetString("backblaze_bucket")).Msg("data")
+		backblaze.UploadToBackBlaze(parquetFn, viper.GetString("backblaze_bucket"), year)
 
 		// Cleanup after ourselves
+		os.RemoveAll(tmpdir)
 	},
 }
 

@@ -1,6 +1,7 @@
 package backblaze
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -24,6 +25,10 @@ func UploadToBackBlaze(fn, bucketName, dirname string) error {
 	if err != nil {
 		log.Error().Str("OriginalError", err.Error()).Str("BucketName", bucketName).Msg("lookup bucket failed")
 		return err
+	}
+	if bucket == nil {
+		log.Error().Str("BucketName", bucketName).Msg("bucket does not exist")
+		return errors.New("bucket not found")
 	}
 
 	reader, _ := os.Open(fn)
