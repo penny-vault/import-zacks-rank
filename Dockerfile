@@ -1,34 +1,19 @@
-FROM golang:latest AS builder
+FROM golang:alpine3.15 AS builder
 
 WORKDIR /go/src
-RUN git clone https://github.com/magefile/mage && cd mage && go run bootstrap.go
+RUN apk add git && git clone https://github.com/magefile/mage && cd mage && go run bootstrap.go
 COPY ./ .
 RUN mage -v build
 
-FROM apify/actor-node-puppeteer-chrome:16
+FROM penny-vault/alpine-chrome:with-puppeteer-apify
 
-COPY --from=builder --chown=myuser:myuser /go/src/import-zacks-rank .
-
-# Second, copy just package.json and package-lock.json since it should be
-# the only file that affects "npm install" in the next step, to speed up the build
-COPY --chown=myuser:myuser scraper/package*.json ./
-
-# Install NPM packages, skip optional and development dependencies to
-# keep the image small. Avoid logging too much and print the dependency
-# tree for debugging
-RUN npm --quiet set progress=false \
- && npm install --only=prod --no-optional \
- && echo "Installed NPM packages:" \
- && (npm list --only=prod --no-optional --all || true) \
- && echo "Node.js version:" \
- && node --version \
- && echo "NPM version:" \
- && npm --version
+COPY --from=builder --chown=chrome:chrome /go/src/import-zacks-rank .
 
 # Next, copy the remaining files and directories with the source code.
 # Since we do this after NPM install, quick build will be really fast
 # for most source file changes.
-COPY --chown=myuser:myuser scraper/* ./
+COPY --chown=chrome:chrome scraper/main.js ./
+COPY --chown=chrome:chrome scrape.sh ./
 
 # Optionally, specify how to launch the source code of your actor.
 # By default, Apify's base Docker images define the CMD instruction
@@ -36,4 +21,4 @@ COPY --chown=myuser:myuser scraper/* ./
 # in the "scripts.start" section of the package.json file.
 # In short, the instruction looks something like this:
 #
-# CMD npm start
+CMD /usr/src/app/scrape.sh
