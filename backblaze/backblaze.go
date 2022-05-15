@@ -13,17 +13,17 @@ import (
 
 func UploadToBackBlaze(fn, bucketName, dirname string) error {
 	b2, err := backblaze.NewB2(backblaze.Credentials{
-		KeyID:          viper.GetString("backblaze_application_id"),
-		ApplicationKey: viper.GetString("backblaze_application_key"),
+		KeyID:          viper.GetString("backblaze.application_id"),
+		ApplicationKey: viper.GetString("backblaze.application_key"),
 	})
 	if err != nil {
-		log.Error().Str("OriginalError", err.Error()).Str("BucketName", bucketName).Msg("authorize backblaze failed")
+		log.Error().Err(err).Str("BucketName", bucketName).Msg("authorize backblaze failed")
 		return err
 	}
 
 	bucket, err := b2.Bucket(bucketName)
 	if err != nil {
-		log.Error().Str("OriginalError", err.Error()).Str("BucketName", bucketName).Msg("lookup bucket failed")
+		log.Error().Err(err).Str("BucketName", bucketName).Msg("lookup bucket failed")
 		return err
 	}
 	if bucket == nil {
@@ -39,7 +39,7 @@ func UploadToBackBlaze(fn, bucketName, dirname string) error {
 
 	file, err := bucket.UploadFile(outName, metadata, reader)
 	if err != nil {
-		log.Error().Str("OriginalError", err.Error()).Str("FileName", outName).Str("BucketName", bucketName).Msg("save file to backblaze failed")
+		log.Error().Err(err).Str("FileName", outName).Str("BucketName", bucketName).Msg("save file to backblaze failed")
 		return err
 	}
 
