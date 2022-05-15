@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/penny-vault/import-zacks-rank/backblaze"
-	"github.com/penny-vault/import-zacks-rank/zacksimport"
+	"github.com/penny-vault/import-zacks-rank/zacks"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -35,45 +35,47 @@ var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "import-zacks-rank [dirpath]",
-	Short: "Import CSV ratings downloaded from Zacks stock screener",
+	Use:   "import-zacks-rank",
+	Short: "Download and import ratings from Zacks stock screener",
 	// Long: ``,
-	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+
+		data, outputFilename := zacks.Download()
 
 		// parse date from filename :(
 		// if that doesn't work use the current date
 		regex := regexp.MustCompile(`zacks_custom_screen_(\d{4}-\d{2}-\d{2})`)
-		match := regex.FindAllStringSubmatch(args[0], -1)
+		match := regex.FindAllStringSubmatch(outputFilename, -1)
 		var dateStr string
 		if len(match) > 0 {
 			dateStr = match[0][1]
 		} else {
-			log.Error().Str("FileName", args[0]).Msg("cannot extract date from filename, expecting zacks_custom_screen_YYYY-MM-DD")
+			log.Error().Str("FileName", outputFilename).Msg("cannot extract date from filename, expecting zacks_custom_screen_YYYY-MM-DD")
 			return
 		}
 
-		ratings := zacksimport.LoadRatings(args[0], dateStr, viper.GetInt("limit"))
-		zacksimport.EnrichWithFigi(ratings)
+		ratings := zacks.LoadRatings(data, dateStr, viper.GetInt("limit"))
+		log.Info().Int("NumRatings", len(ratings)).Msg("loaded ratings")
+		zacks.EnrichWithFigi(ratings)
 
 		// Save data as parquet to a temporary directory
 		tmpdir, err := os.MkdirTemp(os.TempDir(), "import-zacks")
 		if err != nil {
-			log.Error().Str("OriginalError", err.Error()).Msg("could not create tempdir")
+			log.Error().Err(err).Msg("could not create tempdir")
 		}
 		dateStr = strings.ReplaceAll(dateStr, "-", "")
 		parquetFn := fmt.Sprintf("%s/zacks-%s.parquet", tmpdir, dateStr)
 		log.Info().Str("FileName", parquetFn).Msg("writing zacks ratings data to parquet")
-		zacksimport.SaveToParquet(ratings, parquetFn)
+		zacks.SaveToParquet(ratings, parquetFn)
 
 		// Save to database
-		zacksimport.SaveToDB(ratings)
+		zacks.SaveToDB(ratings)
 
 		// Upload to backblaze
 		year := string(dateStr[:4])
-		log.Info().Str("Year", year).Str("Bucket", viper.GetString("backblaze_bucket")).Msg("data")
-		backblaze.UploadToBackBlaze(parquetFn, viper.GetString("backblaze_bucket"), year)
+		log.Info().Str("Year", year).Str("Bucket", viper.GetString("backblaze.bucket")).Msg("data")
+		backblaze.UploadToBackBlaze(parquetFn, viper.GetString("backblaze.bucket"), year)
 
 		// Cleanup after ourselves
 		os.RemoveAll(tmpdir)
@@ -98,19 +100,19 @@ func init() {
 
 	// Add flags
 	rootCmd.Flags().StringP("database_url", "d", "host=localhost port=5432", "DSN for database connection")
-	viper.BindPFlag("database_url", rootCmd.Flags().Lookup("database_url"))
+	viper.BindPFlag("database.url", rootCmd.Flags().Lookup("database_url"))
 
 	rootCmd.Flags().Uint32P("limit", "l", 0, "limit results to N")
 	viper.BindPFlag("limit", rootCmd.Flags().Lookup("limit"))
 
 	rootCmd.Flags().StringP("backblaze_bucket", "b", "zacks-investment", "Backblaze bucket name")
-	viper.BindPFlag("backblaze_bucket", rootCmd.Flags().Lookup("backblaze_bucket"))
+	viper.BindPFlag("backblaze.bucket", rootCmd.Flags().Lookup("backblaze_bucket"))
 
 	rootCmd.Flags().String("backblaze_application_id", "<not-set>", "Backblaze application id")
-	viper.BindPFlag("backblaze_application_id", rootCmd.Flags().Lookup("backblaze_application_id"))
+	viper.BindPFlag("backblaze.application_id", rootCmd.Flags().Lookup("backblaze_application_id"))
 
 	rootCmd.Flags().String("backblaze_application_key", "<not-set>", "Backblaze application key")
-	viper.BindPFlag("backblaze_application_key", rootCmd.Flags().Lookup("backblaze_application_key"))
+	viper.BindPFlag("backblaze.application_key", rootCmd.Flags().Lookup("backblaze_application_key"))
 }
 
 // initConfig reads in config file and ENV variables if set.

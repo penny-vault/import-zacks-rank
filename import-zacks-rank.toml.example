@@ -1,3 +1,14 @@
-backblaze_application_id="<app id>"
-backblaze_application_key="<app key>"
-database_url="database dsn"
+[backblaze]
+bucket = "<bucket name>"
+application_id = "<app id>"
+application_key = "<app key>"
+
+[database]
+url = "host=<host> user=<user> database=<database>"
+
+[playwright]
+headless = true
+
+[zacks]
+username = "<username>"
+password = "<password>"
