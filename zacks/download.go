@@ -89,6 +89,16 @@ func Download() ([]byte, string) {
 	// wait for the screen to load
 	frame.WaitForSelector("#screener_table_wrapper > div.dt-buttons > a.dt-button.buttons-csv.buttons-html5")
 
+	zacksPdfFn := viper.GetString("zacks.pdf")
+	if zacksPdfFn != "" {
+		log.Info().Str("fn", zacksPdfFn).Msg("saving PDF")
+		if _, err = page.PDF(playwright.PagePdfOptions{
+			Path: playwright.String(zacksPdfFn),
+		}); err != nil {
+			log.Error().Err(err).Msg("could not save page to PDF")
+		}
+	}
+
 	var data []byte
 	var outputFilename string
 

@@ -114,6 +114,9 @@ func init() {
 
 	rootCmd.Flags().String("backblaze_application_key", "<not-set>", "Backblaze application key")
 	viper.BindPFlag("backblaze.application_key", rootCmd.Flags().Lookup("backblaze_application_key"))
+
+	rootCmd.Flags().String("zacks-pdf", "", "Save page to PDF for debug purposes")
+	viper.BindPFlag("zacks.pdf", rootCmd.Flags().Lookup("zacks-pdf"))
 }
 
 // initConfig reads in config file and ENV variables if set.
