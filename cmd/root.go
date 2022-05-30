@@ -39,8 +39,6 @@ var rootCmd = &cobra.Command{
 	Short: "Download and import ratings from Zacks stock screener",
 	// Long: ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-
 		data, outputFilename := zacks.Download()
 
 		// parse date from filename :(
@@ -94,9 +92,12 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(initLog)
 
 	// Persistent flags that are global to application
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.import-zacks-rank.toml)")
+	rootCmd.PersistentFlags().Bool("log-json", false, "print logs as json to stderr")
+	viper.BindPFlag("log.json", rootCmd.PersistentFlags().Lookup("log-json"))
 
 	// Add flags
 	rootCmd.Flags().StringP("database_url", "d", "host=localhost port=5432", "DSN for database connection")
@@ -140,5 +141,11 @@ func initConfig() {
 		log.Debug().Str("ConfigFile", viper.ConfigFileUsed()).Msg("Loaded config file")
 	} else {
 		log.Error().Err(err).Msg("error reading config file")
+	}
+}
+
+func initLog() {
+	if !viper.GetBool("log.json") {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	}
 }
