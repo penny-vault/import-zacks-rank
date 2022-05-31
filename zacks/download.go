@@ -30,12 +30,14 @@ func Download() (fileData []byte, outputFilename string, err error) {
 			return
 		}
 
-		if request.ResourceType() == "image" {
-			err := route.Abort("failed")
-			if err != nil {
-				log.Error().Err(err).Msg("failed blocking image")
+		/*
+			if request.ResourceType() == "image" {
+				err := route.Abort("failed")
+				if err != nil {
+					log.Error().Err(err).Msg("failed blocking image")
+				}
 			}
-		}
+		*/
 
 		route.Continue()
 	})
@@ -106,9 +108,6 @@ func Download() (fileData []byte, outputFilename string, err error) {
 		return
 	}
 
-	// slow things down a bit to not trigger anti-scraping code
-	page.WaitForTimeout(1000)
-
 	log.Info().Msg("run the saved stock screen")
 
 	// navigate to our saved screen
@@ -122,9 +121,7 @@ func Download() (fileData []byte, outputFilename string, err error) {
 	}
 
 	// wait up to 60 seconds for the screen to run
-	if _, err = frame.WaitForSelector("#screener_table_wrapper > div.dt-buttons > a.dt-button.buttons-csv.buttons-html5", playwright.PageWaitForSelectorOptions{
-		Timeout: playwright.Float(60000),
-	}); err != nil {
+	if _, err = frame.WaitForSelector("#screener_table_wrapper > div.dt-buttons > a.dt-button.buttons-csv.buttons-html5"); err != nil {
 		log.Error().Err(err).Msg("wait for csv selector failed")
 		return
 	}
