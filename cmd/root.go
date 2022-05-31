@@ -39,7 +39,20 @@ var rootCmd = &cobra.Command{
 	Short: "Download and import ratings from Zacks stock screener",
 	// Long: ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		data, outputFilename := zacks.Download()
+		var data []byte
+		var outputFilename string
+		var err error
+
+		for ii := 0; ii < viper.GetInt("zacks.max_retries"); ii++ {
+			data, outputFilename, err = zacks.Download()
+			if err == nil {
+				break
+			}
+		}
+		// after multiple retries check if the download succeeded
+		if err != nil {
+			os.Exit(1)
+		}
 
 		// parse date from filename :(
 		// if that doesn't work use the current date
@@ -117,6 +130,9 @@ func init() {
 
 	rootCmd.Flags().String("zacks-pdf", "", "Save page to PDF for debug purposes")
 	viper.BindPFlag("zacks.pdf", rootCmd.Flags().Lookup("zacks-pdf"))
+
+	rootCmd.Flags().Int("max-retries", 3, "maximum number of times to retry if download fails")
+	viper.BindPFlag("zacks.max_retries", rootCmd.Flags().Lookup("max-retries"))
 }
 
 // initConfig reads in config file and ENV variables if set.
