@@ -57,7 +57,7 @@ func Download() ([]byte, string) {
 	// page.WaitForNavigation()
 	page.WaitForTimeout(1000)
 
-	log.Info().Msg("wait for navigation completed")
+	log.Info().Msg("Load stock screener page")
 
 	if _, err := page.Goto(STOCK_SCREENER_URL, playwright.PageGotoOptions{
 		WaitUntil: playwright.WaitUntilStateNetworkidle,
@@ -68,7 +68,7 @@ func Download() ([]byte, string) {
 
 	iframe, err := page.WaitForSelector("#screenerContent")
 	if err != nil {
-		log.Error().Err(err).Msg("could not load login page")
+		log.Error().Err(err).Msg("could not load screener page")
 		return []byte{}, ""
 	}
 
@@ -78,16 +78,32 @@ func Download() ([]byte, string) {
 		return []byte{}, ""
 	}
 
+	log.Info().Msg("navigate to saved screens tab")
+
 	// navigate to saved screens tab
-	frame.WaitForSelector("#my-screen-tab")
-	frame.Click("#my-screen-tab")
+	if _, err = frame.WaitForSelector("#my-screen-tab"); err != nil {
+		log.Error().Err(err).Msg("wait for screener tabs failed")
+	}
+	if err = frame.Click("#my-screen-tab"); err != nil {
+		log.Error().Err(err).Msg("click tab button failed")
+	}
+
+	log.Info().Msg("run the screen")
 
 	// navigate to our saved screen
-	frame.WaitForSelector("#btn_run_137005")
-	frame.Click("#btn_run_137005")
+	if _, err = frame.WaitForSelector("#btn_run_137005"); err != nil {
+		log.Error().Err(err).Msg("wait for run button failed")
+	}
+	if err = frame.Click("#btn_run_137005"); err != nil {
+		log.Error().Err(err).Msg("click run button failed")
+	}
 
-	// wait for the screen to load
-	frame.WaitForSelector("#screener_table_wrapper > div.dt-buttons > a.dt-button.buttons-csv.buttons-html5")
+	// wait up to 60 seconds for the screen to run
+	if _, err = frame.WaitForSelector("#screener_table_wrapper > div.dt-buttons > a.dt-button.buttons-csv.buttons-html5", playwright.PageWaitForSelectorOptions{
+		Timeout: playwright.Float(60000),
+	}); err != nil {
+		log.Error().Err(err).Msg("wait for csv selector failed")
+	}
 
 	zacksPdfFn := viper.GetString("zacks.pdf")
 	if zacksPdfFn != "" {
