@@ -10,7 +10,9 @@ import (
 	"github.com/spf13/viper"
 )
 
-func Download() ([]byte, string) {
+// Download authenticates with the zacks webpage and downloads the results of the stock screen
+// it returns the downloaded bytes, filename, and any errors that occur
+func Download() (fileData []byte, outputFilename string, err error) {
 	page, context, browser, pw := common.StartPlaywright(viper.GetBool("playwright.headless"))
 
 	// block a variety of domains that contain trackers and ads
@@ -39,18 +41,32 @@ func Download() ([]byte, string) {
 	})
 
 	// load the login page
-	if _, err := page.Goto(LOGIN_URL, playwright.PageGotoOptions{
+	if _, err = page.Goto(LOGIN_URL, playwright.PageGotoOptions{
 		WaitUntil: playwright.WaitUntilStateNetworkidle,
 	}); err != nil {
 		log.Error().Err(err).Msg("could not load login page")
-		return []byte{}, ""
+		return
 	}
 
-	page.WaitForSelector("#login input[name=username]")
+	if _, err = page.WaitForSelector("#login input[name=username]"); err != nil {
+		log.Error().Err(err).Msg("could not find username input field")
+		return
+	}
 
-	page.Type("#login input[name=username]", viper.GetString("zacks.username"))
-	page.Type("#login input[name=password]", viper.GetString("zacks.password"))
-	page.Click("#login input[value=Login]")
+	if err = page.Type("#login input[name=username]", viper.GetString("zacks.username")); err != nil {
+		log.Error().Err(err).Msg("could not type username")
+		return
+	}
+
+	if err = page.Type("#login input[name=password]", viper.GetString("zacks.password")); err != nil {
+		log.Error().Err(err).Msg("could not type password")
+		return
+	}
+
+	if err = page.Click("#login input[value=Login]"); err != nil {
+		log.Error().Err(err).Msg("could not click login button")
+		return
+	}
 
 	// For some reason page.WaitForNavigation just times out here
 	// substituting 1 second wait for the login to complete
@@ -59,23 +75,23 @@ func Download() ([]byte, string) {
 
 	log.Info().Msg("Load stock screener page")
 
-	if _, err := page.Goto(STOCK_SCREENER_URL, playwright.PageGotoOptions{
+	if _, err = page.Goto(STOCK_SCREENER_URL, playwright.PageGotoOptions{
 		WaitUntil: playwright.WaitUntilStateNetworkidle,
 	}); err != nil {
 		log.Error().Err(err).Msg("could not load stock screener page")
-		return []byte{}, ""
+		return
 	}
 
 	iframe, err := page.WaitForSelector("#screenerContent")
 	if err != nil {
 		log.Error().Err(err).Msg("could not load screener page")
-		return []byte{}, ""
+		return
 	}
 
 	frame, err := iframe.ContentFrame()
 	if err != nil {
 		log.Error().Err(err).Msg("could not get screener content frame")
-		return []byte{}, ""
+		return
 	}
 
 	log.Info().Msg("navigate to saved screens tab")
@@ -83,19 +99,26 @@ func Download() ([]byte, string) {
 	// navigate to saved screens tab
 	if _, err = frame.WaitForSelector("#my-screen-tab"); err != nil {
 		log.Error().Err(err).Msg("wait for screener tabs failed")
+		return
 	}
 	if err = frame.Click("#my-screen-tab"); err != nil {
 		log.Error().Err(err).Msg("click tab button failed")
+		return
 	}
 
-	log.Info().Msg("run the screen")
+	// slow things down a bit to not trigger anti-scraping code
+	page.WaitForTimeout(1000)
+
+	log.Info().Msg("run the saved stock screen")
 
 	// navigate to our saved screen
 	if _, err = frame.WaitForSelector("#btn_run_137005"); err != nil {
 		log.Error().Err(err).Msg("wait for run button failed")
+		return
 	}
 	if err = frame.Click("#btn_run_137005"); err != nil {
 		log.Error().Err(err).Msg("click run button failed")
+		return
 	}
 
 	// wait up to 60 seconds for the screen to run
@@ -103,6 +126,7 @@ func Download() ([]byte, string) {
 		Timeout: playwright.Float(60000),
 	}); err != nil {
 		log.Error().Err(err).Msg("wait for csv selector failed")
+		return
 	}
 
 	zacksPdfFn := viper.GetString("zacks.pdf")
@@ -115,26 +139,25 @@ func Download() ([]byte, string) {
 		}
 	}
 
-	var data []byte
-	var outputFilename string
-
-	if download, err := page.ExpectDownload(func() error {
+	var download playwright.Download
+	if download, err = page.ExpectDownload(func() error {
 		return frame.Click("#screener_table_wrapper > div.dt-buttons > a.dt-button.buttons-csv.buttons-html5")
 	}); err != nil {
 		log.Error().Err(err).Msg("download failed")
+	}
+
+	var path string
+	if path, err = download.Path(); err != nil {
+		log.Error().Err(err).Msg("download failed")
 	} else {
-		if path, err := download.Path(); err != nil {
-			log.Error().Err(err).Msg("download failed")
-		} else {
-			outputFilename = download.SuggestedFilename()
-			data, err = os.ReadFile(path)
-			if err != nil {
-				log.Error().Err(err).Msg("reading data failed")
-			}
+		outputFilename = download.SuggestedFilename()
+		fileData, err = os.ReadFile(path)
+		if err != nil {
+			log.Error().Err(err).Msg("reading data failed")
+			return
 		}
 	}
 
 	common.StopPlaywright(page, context, browser, pw)
-
-	return data, outputFilename
+	return
 }
