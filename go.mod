@@ -10,7 +10,7 @@ require (
 	github.com/magefile/mage v1.13.0
 	github.com/playwright-community/playwright-go v0.2000.1
 	github.com/rs/zerolog v1.27.0
-	github.com/spf13/cobra v1.4.0
+	github.com/spf13/cobra v1.5.0
 	github.com/spf13/viper v1.12.0
 	github.com/xitongsys/parquet-go v1.6.2
 	github.com/xitongsys/parquet-go-source v0.0.0-20220527110425-ba4adb87a31b
