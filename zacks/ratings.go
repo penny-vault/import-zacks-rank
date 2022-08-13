@@ -15,7 +15,9 @@ import (
 func LoadRatings(ratingsData []byte, dateStr string, limit int) []*ZacksRecord {
 	records := []*ZacksRecord{}
 
-	if err := gocsv.UnmarshalBytes(ratingsData, &records); err != nil {
+	stringData := string(ratingsData[:])
+	stringData = strings.ReplaceAll(stringData, `"NA"`, `"0"`)
+	if err := gocsv.UnmarshalString(stringData, &records); err != nil {
 		log.Error().Err(err).Msg("failed to unmarshal byte data")
 		return make([]*ZacksRecord, 0)
 	}
