@@ -68,6 +68,9 @@ var rootCmd = &cobra.Command{
 
 		ratings := zacks.LoadRatings(data, dateStr, viper.GetInt("limit"))
 		log.Info().Int("NumRatings", len(ratings)).Msg("loaded ratings")
+		if len(ratings) == 0 {
+			log.Fatal().Msg("no ratings returned")
+		}
 		zacks.EnrichWithFigi(ratings)
 
 		// Save data as parquet to a temporary directory
