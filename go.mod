@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/go-rod/stealth v0.4.6
 	github.com/gocarina/gocsv v0.0.0-20220520193141-bb9bebb918c3
-	github.com/jackc/pgx/v4 v4.17.0
+	github.com/jackc/pgx/v4 v4.17.1
 	github.com/kothar/go-backblaze v0.0.0-20210124194846-35409b867216
 	github.com/magefile/mage v1.13.0
 	github.com/playwright-community/playwright-go v0.2000.1
