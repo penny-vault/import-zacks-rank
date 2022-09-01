@@ -80,7 +80,10 @@ var fileCmd = &cobra.Command{
 		zacks.SaveToParquet(ratings, parquetFn)
 
 		// Save to database
-		zacks.SaveToDB(ratings)
+		err = zacks.SaveToDB(ratings)
+		if err != nil {
+			log.Fatal().Err(err).Msg("could not save to DB")
+		}
 
 		// Upload to backblaze
 		year := string(dateStr[:4])
