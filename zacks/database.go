@@ -8,10 +8,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-func SaveToDB(records []*ZacksRecord) {
+func SaveToDB(records []*ZacksRecord) error {
 	conn, err := pgx.Connect(context.Background(), viper.GetString("database.url"))
 	if err != nil {
 		log.Error().Err(err).Msg("Could not connect to database")
+		return err
 	}
 	defer conn.Close(context.Background())
 
@@ -482,6 +483,7 @@ func SaveToDB(records []*ZacksRecord) {
 				r.CurrentRatio, r.QuickRatio, r.CashRatio)
 			if err != nil {
 				log.Warn().Err(err).Msg("insert into db failed")
+				return err
 			} else {
 				cnt++
 			}
@@ -489,4 +491,5 @@ func SaveToDB(records []*ZacksRecord) {
 	}
 
 	log.Info().Int("NumRecords", cnt).Msg("records saved to DB")
+	return nil
 }
