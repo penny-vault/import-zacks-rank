@@ -6,10 +6,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Debugging option that saves a PDF
-- Flag to output logs as JSON
 
 ### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+
+## [0.2.0] - 2022-10-09
+### Added
+- Debugging option that saves a PDF
+- Flag to output logs as JSON
+- Test command that only downloads and parses data from zacks but does not save to DB or upload to backblaze
+
+### Changed
+
+- Blocked additional ad websites that were interfering with zacks rank download
 
 ### Deprecated
 
@@ -27,5 +44,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update pvdb database with downloaded data
 - Add Dockerfile for building a container
 
-[Unreleased]: https://github.com/penny-vault/import-tickers/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/penny-vault/import-tickers/releases/tag/v0.0.1
+[Unreleased]: https://github.com/penny-vault/import-tickers/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/penny-vault/import-tickers/releases/tag/v0.2.0
+[0.1.0]: https://github.com/penny-vault/import-tickers/releases/tag/v0.1.0
