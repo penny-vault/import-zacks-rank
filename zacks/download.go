@@ -10,37 +10,25 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Download authenticates with the zacks webpage and downloads the results of the stock screen
-// it returns the downloaded bytes, filename, and any errors that occur
-func Download() (fileData []byte, outputFilename string, err error) {
-	page, context, browser, pw := common.StartPlaywright(viper.GetBool("playwright.headless"))
+func ensureLoggedIn(page playwright.Page) {
+	if _, err := page.Goto(HOMEPAGE_URL, playwright.PageGotoOptions{
+		WaitUntil: playwright.WaitUntilStateNetworkidle,
+	}); err != nil {
+		log.Error().Err(err).Msg("could not load home page")
+		return
+	}
 
-	// block a variety of domains that contain trackers and ads
-	page.Route("**/*", func(route playwright.Route, request playwright.Request) {
-		if strings.Contains(request.URL(), "google.com") ||
-			strings.Contains(request.URL(), "facebook.com") ||
-			strings.Contains(request.URL(), "adsystem.com") ||
-			strings.Contains(request.URL(), "sitescout.com") ||
-			strings.Contains(request.URL(), "ipredictive.com") ||
-			strings.Contains(request.URL(), "eyeota.net") {
-			err := route.Abort("failed")
-			if err != nil {
-				log.Error().Err(err).Msg("failed blocking route")
-			}
-			return
-		}
+	elems, err := page.QuerySelectorAll("#user_menu > li.welcome_usn")
+	if err != nil {
+		log.Error().Err(err).Msg("could not determine if user is logged in; error when calling QuerySelectorAll")
+	}
+	if len(elems) > 0 {
+		// already logged in
+		log.Info().Msg("user is already logged in")
+		return
+	}
 
-		/*
-			if request.ResourceType() == "image" {
-				err := route.Abort("failed")
-				if err != nil {
-					log.Error().Err(err).Msg("failed blocking image")
-				}
-			}
-		*/
-
-		route.Continue()
-	})
+	log.Info().Msg("need to log user in")
 
 	// load the login page
 	if _, err = page.Goto(LOGIN_URL, playwright.PageGotoOptions{
@@ -74,6 +62,53 @@ func Download() (fileData []byte, outputFilename string, err error) {
 	// substituting 1 second wait for the login to complete
 	// page.WaitForNavigation()
 	page.WaitForTimeout(1000)
+}
+
+// Download authenticates with the zacks webpage and downloads the results of the stock screen
+// it returns the downloaded bytes, filename, and any errors that occur
+func Download() (fileData []byte, outputFilename string, err error) {
+	page, context, browser, pw := common.StartPlaywright(viper.GetBool("playwright.headless"))
+
+	// block a variety of domains that contain trackers and ads
+	page.Route("**/*", func(route playwright.Route, request playwright.Request) {
+		if strings.Contains(request.URL(), "google.com") ||
+			strings.Contains(request.URL(), "googletagservices.com") ||
+			strings.Contains(request.URL(), "googlesyndication.com") ||
+			strings.Contains(request.URL(), "facebook.com") ||
+			strings.Contains(request.URL(), "moatpixel.com") ||
+			strings.Contains(request.URL(), "moatads.com") ||
+			strings.Contains(request.URL(), "adsystem.com") ||
+			strings.Contains(request.URL(), "amazon-adsystem.com") ||
+			strings.Contains(request.URL(), "adnxs.com") ||
+			strings.Contains(request.URL(), "lijit.com") ||
+			strings.Contains(request.URL(), "3lift.com") ||
+			strings.Contains(request.URL(), "doubleclick.net") ||
+			strings.Contains(request.URL(), "bidswitch.net") ||
+			strings.Contains(request.URL(), "casalemedia.com") ||
+			strings.Contains(request.URL(), "yahoo.com") ||
+			strings.Contains(request.URL(), "sitescout.com") ||
+			strings.Contains(request.URL(), "ipredictive.com") ||
+			strings.Contains(request.URL(), "eyeota.net") {
+			err := route.Abort("failed")
+			if err != nil {
+				log.Error().Err(err).Msg("failed blocking route")
+			}
+			return
+		}
+
+		/*
+			if request.ResourceType() == "image" {
+				err := route.Abort("failed")
+				if err != nil {
+					log.Error().Err(err).Msg("failed blocking image")
+				}
+			}
+		*/
+
+		route.Continue()
+	})
+
+	ensureLoggedIn(page)
 
 	log.Info().Msg("Load stock screener page")
 
@@ -115,14 +150,19 @@ func Download() (fileData []byte, outputFilename string, err error) {
 		log.Error().Err(err).Msg("wait for run button failed")
 		return
 	}
+
+	log.Info().Msg("clicking run button")
+
 	if err = frame.Click("#btn_run_137005"); err != nil {
 		log.Error().Err(err).Msg("click run button failed")
 		return
 	}
 
-	// wait up to 60 seconds for the screen to run
+	log.Info().Msg("button clicked")
+
+	// wait for the screen to finish running
 	if _, err = frame.WaitForSelector("#screener_table_wrapper > div.dt-buttons > a.dt-button.buttons-csv.buttons-html5"); err != nil {
-		log.Error().Err(err).Msg("wait for csv selector failed")
+		log.Error().Err(err).Msg("wait for 'csv' download selector failed")
 		return
 	}
 
