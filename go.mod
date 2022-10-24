@@ -3,7 +3,7 @@ module github.com/penny-vault/import-zacks-rank
 go 1.18
 
 require (
-	github.com/go-rod/stealth v0.4.7
+	github.com/go-rod/stealth v0.4.8
 	github.com/gocarina/gocsv v0.0.0-20220520193141-bb9bebb918c3
 	github.com/jackc/pgx/v4 v4.17.2
 	github.com/kothar/go-backblaze v0.0.0-20210124194846-35409b867216
@@ -21,7 +21,7 @@ require (
 	github.com/apache/thrift v0.16.0 // indirect
 	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
-	github.com/go-rod/rod v0.109.3 // indirect
+	github.com/go-rod/rod v0.112.0 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang/glog v1.0.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
