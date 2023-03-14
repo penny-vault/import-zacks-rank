@@ -1,6 +1,6 @@
 module github.com/penny-vault/import-zacks-rank
 
-go 1.18
+go 1.20
 
 require (
 	github.com/go-rod/stealth v0.4.8
