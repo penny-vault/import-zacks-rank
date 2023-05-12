@@ -7,7 +7,7 @@ require (
 	github.com/gocarina/gocsv v0.0.0-20230226133904-70c27cb2918a
 	github.com/jackc/pgx/v4 v4.18.1
 	github.com/kothar/go-backblaze v0.0.0-20210124194846-35409b867216
-	github.com/magefile/mage v1.14.0
+	github.com/magefile/mage v1.15.0
 	github.com/playwright-community/playwright-go v0.2000.2-0.20221022152247-2586b3829688
 	github.com/rs/zerolog v1.29.1
 	github.com/spf13/cobra v1.7.0
