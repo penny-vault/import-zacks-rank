@@ -13,9 +13,9 @@ import (
 func ensureLoggedIn(page playwright.Page) {
 	if _, err := page.Goto(HOMEPAGE_URL, playwright.PageGotoOptions{
 		WaitUntil: playwright.WaitUntilStateNetworkidle,
+		Timeout:   playwright.Float(10000),
 	}); err != nil {
-		log.Error().Err(err).Msg("could not load home page")
-		return
+		log.Error().Err(err).Msg("waiting for network idle on home page timed out")
 	}
 
 	elems, err := page.QuerySelectorAll("#user_menu > li.welcome_usn")
@@ -70,7 +70,8 @@ func Download() (fileData []byte, outputFilename string, err error) {
 	page, context, browser, pw := common.StartPlaywright(viper.GetBool("playwright.headless"))
 
 	// block a variety of domains that contain trackers and ads
-	page.Route("**/*", func(route playwright.Route, request playwright.Request) {
+	page.Route("**/*", func(route playwright.Route) {
+		request := route.Request()
 		if strings.Contains(request.URL(), "google.com") ||
 			strings.Contains(request.URL(), "googletagservices.com") ||
 			strings.Contains(request.URL(), "googlesyndication.com") ||
@@ -88,7 +89,9 @@ func Download() (fileData []byte, outputFilename string, err error) {
 			strings.Contains(request.URL(), "yahoo.com") ||
 			strings.Contains(request.URL(), "sitescout.com") ||
 			strings.Contains(request.URL(), "ipredictive.com") ||
+			strings.Contains(request.URL(), "uat5-b.investingchannel.com") ||
 			strings.Contains(request.URL(), "eyeota.net") {
+			log.Info().Str("URL", request.URL()).Msg("blocking request")
 			err := route.Abort("failed")
 			if err != nil {
 				log.Error().Err(err).Msg("failed blocking route")

@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.2.1] - 2023-07-04
+### Security
+- Upgrade to latest version of playwright/chromium
 
 ## [0.2.0] - 2022-10-09
 ### Added
@@ -44,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update pvdb database with downloaded data
 - Add Dockerfile for building a container
 
-[Unreleased]: https://github.com/penny-vault/import-tickers/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/penny-vault/import-tickers/releases/tag/v0.2.0
-[0.1.0]: https://github.com/penny-vault/import-tickers/releases/tag/v0.1.0
+[Unreleased]: https://github.com/penny-vault/import-zacks-rank/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/penny-vault/import-zacks-rank/releases/tag/v0.2.1
+[0.2.0]: https://github.com/penny-vault/import-zacks-rank/releases/tag/v0.2.0
+[0.1.0]: https://github.com/penny-vault/import-zacks-rank/releases/tag/v0.1.0
