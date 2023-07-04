@@ -93,11 +93,6 @@ func StartPlaywright(headless bool) (page playwright.Page, context playwright.Br
 }
 
 func StopPlaywright(page playwright.Page, context playwright.BrowserContext, browser playwright.Browser, pw *playwright.Playwright) {
-	log.Info().Msg("closing context")
-	if err := context.Close(); err != nil {
-		log.Error().Err(err).Msg("error encountered when closing context")
-	}
-
 	log.Info().Msg("closing browser")
 	if err := browser.Close(); err != nil {
 		log.Error().Err(err).Msg("error encountered when closing browser")
