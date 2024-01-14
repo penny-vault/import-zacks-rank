@@ -1,3 +1,19 @@
+/*
+Copyright 2022
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package common
 
 import (
@@ -89,7 +105,59 @@ func StartPlaywright(headless bool) (page playwright.Page, context playwright.Br
 	// get a page
 	page = StealthPage(&context)
 
+	// block trackers
+	BlockTrackers(page)
+
 	return
+}
+
+func BlockTrackers(page playwright.Page) {
+	// block a variety of domains that contain trackers and ads
+	page.Route("**/*", func(route playwright.Route) {
+		request := route.Request()
+		if strings.Contains(request.URL(), "google.com") ||
+			strings.Contains(request.URL(), "googletagservices.com") ||
+			strings.Contains(request.URL(), "googlesyndication.com") ||
+			strings.Contains(request.URL(), "facebook.com") ||
+			strings.Contains(request.URL(), "moatpixel.com") ||
+			strings.Contains(request.URL(), "moatads.com") ||
+			strings.Contains(request.URL(), "adsystem.com") ||
+			strings.Contains(request.URL(), "connatix.com") ||
+			strings.Contains(request.URL(), "prebid") ||
+			strings.Contains(request.URL(), "sodar") ||
+			strings.Contains(request.URL(), "auction") ||
+			strings.Contains(request.URL(), "rubiconproject.com") ||
+			strings.Contains(request.URL(), "pubmatic.com") ||
+			strings.Contains(request.URL(), "amazon-adsystem.com") ||
+			strings.Contains(request.URL(), "adnxs.com") ||
+			strings.Contains(request.URL(), "lijit.com") ||
+			strings.Contains(request.URL(), "3lift.com") ||
+			strings.Contains(request.URL(), "doubleclick.net") ||
+			strings.Contains(request.URL(), "bidswitch.net") ||
+			strings.Contains(request.URL(), "casalemedia.com") ||
+			strings.Contains(request.URL(), "yahoo.com") ||
+			strings.Contains(request.URL(), "sitescout.com") ||
+			strings.Contains(request.URL(), "ipredictive.com") ||
+			strings.Contains(request.URL(), "uat5-b.investingchannel.com") ||
+			strings.Contains(request.URL(), "eyeota.net") {
+			err := route.Abort("failed")
+			if err != nil {
+				log.Error().Err(err).Msg("failed blocking route")
+			}
+			return
+		}
+
+		/*
+			if request.ResourceType() == "image" {
+				err := route.Abort("failed")
+				if err != nil {
+					log.Error().Err(err).Msg("failed blocking image")
+				}
+			}
+		*/
+
+		route.Continue()
+	})
 }
 
 func StopPlaywright(page playwright.Page, context playwright.BrowserContext, browser playwright.Browser, pw *playwright.Playwright) {
