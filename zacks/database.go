@@ -1,3 +1,19 @@
+/*
+Copyright 2022
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package zacks
 
 import (
@@ -492,4 +508,34 @@ func SaveToDB(records []*ZacksRecord) error {
 
 	log.Info().Int("NumRecords", cnt).Msg("records saved to DB")
 	return nil
+}
+
+func (balanceSheetList BalanceSheetList) SaveToDB(ctx context.Context, conn *pgx.Conn) {
+	// build a list of all active records that have composite figi's
+	tickerMap := make(map[string]*Ticker)
+
+	// build figi map
+	rows, err := conn.Query(context.Background(), "SELECT ticker, name, composite_figi FROM assets WHERE active='t' AND composite_figi IS NOT NULL")
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to retrieve tickers from database")
+	}
+
+	for rows.Next() {
+		var ticker Ticker
+		err := rows.Scan(&ticker.Ticker, &ticker.CompanyName, &ticker.CompositeFigi)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to retrieve ticker row from database")
+		}
+		tickerMap[ticker.Ticker] = &ticker
+	}
+
+	// save each balance sheet to database
+	for _, r := range balanceSheetList {
+		if ticker, ok := tickerMap[r.Ticker]; ok {
+			r.CompositeFigi = ticker.CompositeFigi
+			if _, err := conn.Exec(ctx, "UPDATE fundamentals SET curr_assets=$1, curr_liabilities=$2, working_capital=$3 WHERE composite_figi=$4 AND calendar_date=$5 AND dim=$6", r.TotalCurrentAssets, r.TotalCurrentLiabilities, r.TotalCurrentAssets-r.TotalCurrentLiabilities, r.CompositeFigi, r.CalendarDate, r.Dimension); err != nil {
+				log.Error().Err(err).Str("Ticker", r.Ticker).Str("CompositeFIGI", r.CompositeFigi).Msg("error updating database")
+			}
+		}
+	}
 }

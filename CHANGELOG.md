@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 
+- Download of balance sheet for a speicific ticker
+
 ### Changed
+
+- Updated to reflect latest playwright API
 
 ### Deprecated
 

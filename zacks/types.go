@@ -1,3 +1,19 @@
+/*
+Copyright 2022
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package zacks
 
 import "time"
@@ -7,6 +23,18 @@ type Ticker struct {
 	Ticker        string `db:"ticker"`
 	CompositeFigi string `db:"composite_figi"`
 }
+
+type BalanceSheetRecord struct {
+	Ticker                  string  `parquet:"name=ticker, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	CompositeFigi           string  `parquet:"name=composite_figi, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	CalendarDate            string  `parquet:"name=calendar_date, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Dimension               string  `parquet:"name=dimension, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	TotalCurrentAssets      float64 `parquet:"name=curr_assets, type=DOUBLE"`
+	TotalCurrentLiabilities float64 `parquet:"name=curr_liabilities, type=DOUBLE"`
+	DownloadDate            time.Time
+}
+
+type BalanceSheetList []*BalanceSheetRecord
 
 type ZacksRecord struct {
 	CompanyName                               string    `csv:"Company Name" json:"company_name" parquet:"name=company_name, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
