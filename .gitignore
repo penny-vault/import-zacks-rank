@@ -15,5 +15,7 @@ import-zacks-rank
 # Configuration files used in local testing
 import-zacks-rank.toml
 
+*.parquet
+
 # Dependency directories (remove the comment below to include it)
 # vendor/

@@ -41,6 +41,7 @@ func BalanceSheet(tickers []string) (BalanceSheetList, error) {
 		progressbar.OptionShowBytes(false),
 		progressbar.OptionShowCount(),
 		progressbar.OptionShowElapsedTimeOnFinish(),
+		progressbar.OptionSetPredictTime(true),
 		progressbar.OptionSetWidth(25),
 		progressbar.OptionSetDescription("Preparing to download ..."),
 		progressbar.OptionSetTheme(progressbar.Theme{
