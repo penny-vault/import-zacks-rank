@@ -16,6 +16,8 @@ package cmd
 
 import (
 	"context"
+	"math/rand"
+	"os"
 	"time"
 
 	"github.com/jackc/pgx/v4"
@@ -23,6 +25,11 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+)
+
+var (
+	lookback  int
+	maxAssets int
 )
 
 var balanceSheetCmd = &cobra.Command{
@@ -39,16 +46,63 @@ var balanceSheetCmd = &cobra.Command{
 		defer conn.Close(ctx)
 
 		if len(args) == 0 {
-			if rows, err := conn.Query(ctx, "SELECT distinct ticker FROM fundamentals WHERE event_date > $1 AND working_capital = 'NaN'::float8", time.Now().Add(-365*24*time.Hour)); err != nil {
+			// get exclusions
+			exclusion := make(map[string]bool)
+			if rows, err := conn.Query(ctx, "SELECT distinct composite_figi FROM zacks_balance_sheet_exclusions"); err != nil {
 				log.Fatal().Err(err).Msg("error querying database for tickers without working_capital")
 			} else {
-				var ticker string
-				if err := rows.Scan(&ticker); err != nil {
-					log.Fatal().Err(err).Msg("unable to scan query value into ticker string")
+				var figi string
+
+				for rows.Next() {
+					if err := rows.Scan(&figi); err != nil {
+						log.Fatal().Err(err).Msg("unable to scan query exclusion into figi string")
+					}
+
+					exclusion[figi] = true
+				}
+			}
+
+			// get tickers
+			if rows, err := conn.Query(ctx, "SELECT distinct ticker, composite_figi FROM fundamentals WHERE event_date > $1 AND working_capital = 'NaN'::float8 AND dim='As-Reported-Quarterly'", time.Now().Add(-90*24*time.Hour)); err != nil {
+				log.Fatal().Err(err).Msg("error querying database for tickers without working_capital")
+			} else {
+				var (
+					ticker string
+					figi   string
+				)
+
+				cnt := 0
+				for rows.Next() {
+					cnt += 1
+					if err := rows.Scan(&ticker, &figi); err != nil {
+						log.Fatal().Err(err).Msg("unable to scan query value into ticker string")
+					}
+
+					if _, ok := exclusion[figi]; !ok {
+						args = append(args, ticker)
+					}
 				}
 
-				args = append(args, ticker)
+				log.Info().Int("Count", cnt).Int("LenArgs", len(args)).Msg("found assets with missing working capital in database")
 			}
+
+			// shuffle the list
+			for i := range args {
+				j := rand.Intn(i + 1)
+				args[i], args[j] = args[j], args[i]
+			}
+
+			log.Info().Int("Count", len(args)).Int("lookback", lookback).Msg("found records missing working_capital")
+
+			// limit run to maxAssets items
+			if len(args) > maxAssets {
+				args = args[:maxAssets]
+			}
+		}
+
+		if len(args) == 0 {
+			log.Error().Msg("No assets to lookup")
+			os.Exit(0)
 		}
 
 		if balanceSheets, err := zacks.BalanceSheet(args); err == nil {
@@ -64,5 +118,8 @@ var balanceSheetCmd = &cobra.Command{
 }
 
 func init() {
+	balanceSheetCmd.LocalFlags().IntVar(&lookback, "lookback", 30, "Number of days to lookback")
+	balanceSheetCmd.LocalFlags().IntVar(&maxAssets, "max-assets", 25, "Maximum number of discovered assets to include")
+
 	rootCmd.AddCommand(balanceSheetCmd)
 }

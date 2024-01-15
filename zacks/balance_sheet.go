@@ -52,10 +52,13 @@ func BalanceSheet(tickers []string) (BalanceSheetList, error) {
 			BarEnd:        "]",
 		}))
 
+	completed := 0
 	for _, ticker := range tickers {
 		bar.Describe(ticker)
 
-		if _, err := page.Goto(fmt.Sprintf("https://www.zacks.com/stock/quote/%s/balance-sheet?icid=quote-stock_overview-quote_nav_tracking-zcom-left_subnav_quote_navbar-balance_sheet", ticker), playwright.PageGotoOptions{
+		zacksTicker := strings.ReplaceAll(ticker, "/", ".")
+
+		if _, err := page.Goto(fmt.Sprintf("https://www.zacks.com/stock/quote/%s/balance-sheet?icid=quote-stock_overview-quote_nav_tracking-zcom-left_subnav_quote_navbar-balance_sheet", zacksTicker), playwright.PageGotoOptions{
 			WaitUntil: playwright.WaitUntilStateNetworkidle,
 			Timeout:   playwright.Float(20000),
 		}); err != nil {
@@ -72,7 +75,11 @@ func BalanceSheet(tickers []string) (BalanceSheetList, error) {
 		// get section header
 		annual := make(map[string]*BalanceSheetRecord, 5)
 		colMap := make(map[int]string, 5)
-		parseHeader("#annual_income_statement", ticker, "As-Reported-Annual", page, annual, colMap)
+		if err := parseHeader("#annual_income_statement", ticker, "As-Reported-Annual", page, annual, colMap); err != nil {
+			// add to database
+			AddExclusion(ticker)
+			continue
+		}
 
 		if len(colMap) > 0 {
 			// current assets
@@ -81,9 +88,12 @@ func BalanceSheet(tickers []string) (BalanceSheetList, error) {
 			parseRow("#annual_income_statement", "Total Current Liabilities", "TotalCurrentLiabilities", page, annual, colMap)
 		}
 
+		allNaN := true
+
 		// add all ARY dimension to return val
 		for _, v := range annual {
 			result = append(result, v)
+			allNaN = (math.IsNaN(v.TotalCurrentAssets) && math.IsNaN(v.TotalCurrentLiabilities)) && allNaN
 		}
 
 		// Quarterly Income Statement
@@ -109,8 +119,22 @@ func BalanceSheet(tickers []string) (BalanceSheetList, error) {
 		// add all ARQ dimension to return val
 		for _, v := range quarterly {
 			result = append(result, v)
+			allNaN = (math.IsNaN(v.TotalCurrentAssets) && math.IsNaN(v.TotalCurrentLiabilities)) && allNaN
 		}
+
 		bar.Add(1)
+		completed += 1
+
+		if allNaN {
+			AddExclusion(ticker)
+		}
+
+		// every 50 tickers restart playwright
+		if completed > 50 {
+			common.StopPlaywright(page, context, browser, pw)
+			page, context, browser, pw = common.StartPlaywright(viper.GetBool("playwright.headless"))
+			completed = 0
+		}
 	}
 
 	common.StopPlaywright(page, context, browser, pw)
@@ -170,6 +194,9 @@ func parseRow(selector string, rowLabel string, fieldName string, page playwrigh
 				log.Error().Err(err).Str("inputVal", val).Str("column", colMap[idx]).Msg("could not convert value to float")
 			} else {
 				floatVal *= 1e6
+				if floatVal < 0 {
+					floatVal = math.NaN()
+				}
 				reflect.ValueOf(table[colMap[idx]]).Elem().FieldByName(fieldName).Set(reflect.ValueOf(floatVal))
 			}
 		}

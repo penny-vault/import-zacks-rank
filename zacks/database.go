@@ -24,6 +24,34 @@ import (
 	"github.com/spf13/viper"
 )
 
+func AddExclusion(ticker string) {
+	ctx := context.Background()
+
+	conn, err := pgx.Connect(ctx, viper.GetString("database.url"))
+	if err != nil {
+		log.Error().Err(err).Msg("could not connect to database in AddExclusion")
+	}
+	defer conn.Close(ctx)
+
+	// lookup the composite figi
+	rows, err := conn.Query(ctx, "SELECT composite_figi FROM assets WHERE ticker=$1 AND active='t' LIMIT 1", ticker)
+	if err != nil {
+		log.Error().Err(err).Msg("could not query database from composite_figi in AddExclusion")
+	}
+
+	var figi string
+	for rows.Next() {
+		if err := rows.Scan(&figi); err != nil {
+			log.Error().Err(err).Msg("could not scan into figi string")
+		}
+	}
+
+	// save to exclusions table
+	if _, err := conn.Exec(ctx, `INSERT INTO zacks_balance_sheet_exclusions ("ticker", "composite_figi") VALUES ($1, $2)`, ticker, figi); err != nil {
+		log.Error().Err(err).Str("Ticker", ticker).Str("CompositeFIGI", figi).Msg("could not save exclusion to DB")
+	}
+}
+
 func SaveToDB(records []*ZacksRecord) error {
 	conn, err := pgx.Connect(context.Background(), viper.GetString("database.url"))
 	if err != nil {
