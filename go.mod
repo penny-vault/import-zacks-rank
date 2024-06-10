@@ -10,7 +10,7 @@ require (
 	github.com/jackc/pgx/v4 v4.18.3
 	github.com/kothar/go-backblaze v0.0.0-20210124194846-35409b867216
 	github.com/magefile/mage v1.15.0
-	github.com/playwright-community/playwright-go v0.4201.1
+	github.com/playwright-community/playwright-go v0.4401.0
 	github.com/rs/zerolog v1.32.0
 	github.com/schollz/progressbar/v3 v3.14.2
 	github.com/spf13/cobra v1.8.0
@@ -64,7 +64,7 @@ require (
 	github.com/ysmood/leakless v0.8.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
-	golang.org/x/exp v0.0.0-20240318143956-a85f2c67cd81 // indirect
+	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/term v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
