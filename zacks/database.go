@@ -526,7 +526,7 @@ func SaveToDB(records []*ZacksRecord) error {
 				r.DebtToTotalCapital, r.DebtToEquityRatio,
 				r.CurrentRatio, r.QuickRatio, r.CashRatio)
 			if err != nil {
-				log.Warn().Err(err).Msg("insert into db failed")
+				log.Warn().Err(err).Str("CompositeFigi", r.CompositeFigi).Str("Ticker", r.Ticker).Int("ZacksRank", r.ZacksRank).Msg("insert into db failed")
 				return err
 			} else {
 				cnt++
