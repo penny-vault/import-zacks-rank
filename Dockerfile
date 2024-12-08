@@ -5,5 +5,5 @@ COPY ./ .
 RUN mage -v build
 
 FROM pennyvault/playwright-go
-COPY --from=builder /go/src/import-zacks-rank /home/playwright
-ENTRYPOINT ["/home/playwright/import-zacks-rank"]
+COPY --from=builder /go/src/import-zacks-rank /home/ubuntu
+ENTRYPOINT ["/home/ubuntu/import-zacks-rank"]
