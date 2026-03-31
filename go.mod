@@ -7,7 +7,7 @@ require (
 	github.com/gocarina/gocsv v0.0.0-20240520201108-78e41c74b4b1
 	github.com/jackc/pgx/v4 v4.18.3
 	github.com/kothar/go-backblaze v0.0.0-20210124194846-35409b867216
-	github.com/magefile/mage v1.16.0
+	github.com/magefile/mage v1.17.1
 	github.com/playwright-community/playwright-go v0.5700.1
 	github.com/rs/zerolog v1.34.0
 	github.com/schollz/progressbar/v3 v3.19.0
